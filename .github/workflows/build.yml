@@ -76,6 +76,9 @@ jobs:
           exit-code: '0' #This is for testing purposes only
           format: table
   build:
+    permissions: 
+      contents: read
+      packages: write
     name: Build and push image
     needs: [sonarqube-scan, security-scan]
     runs-on: ubuntu-latest
