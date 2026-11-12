@@ -1,10 +1,9 @@
-name: SonarQube
+name: Build
 on:
   push:
     branches:
       - main
-  pull_request:
-    types: [opened, synchronize, reopened]
+
 jobs:
   test:
     name: Test
@@ -56,3 +55,5 @@ jobs:
           args: >
             -Dsonar.organization=lucassantillan0
             -Dsonar.projectKey=LucasSantillan0_devsu-devops-test
+            -Dsonar.qualitygate.wait=true
+            -Dsonar.qualitygate.timeout=360
