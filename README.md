@@ -196,10 +196,12 @@ La consigna solicita explícitamente el resultado de los pipelines y las salidas
 
 ## CI Exitoso
 
+![CI](/docs/evidence/CI.png)
 https://github.com/LucasSantillan0/devsu-devops-test/actions/runs/43436803100
 
 ## CD Exitoso
 
+![CD](/docs/evidence/CD.png)
 https://github.com/LucasSantillan0/devsu-devops-test/actions/runs/43437100776
 
 ## Infraestructura creada
