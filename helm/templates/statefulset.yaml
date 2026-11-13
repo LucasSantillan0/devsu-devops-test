@@ -61,6 +61,10 @@ spec:
           volumeMounts:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+          envFrom:
+            - configMapRef:
+              name: {{ include "test-api.fullname" . }}-config
+
       {{- with .Values.volumes }}
       volumes:
         {{- toYaml . | nindent 8 }}
