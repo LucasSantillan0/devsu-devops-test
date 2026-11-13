@@ -21,7 +21,7 @@ COPY --from=builder --chown=node:node /app/package.json ./
 COPY --from=builder --chown=node:node /app/index.js ./
 COPY --from=builder --chown=node:node /app/shared ./shared
 COPY --from=builder --chown=node:node /app/users ./users
-COPY --from=builder --chown=user:node /app/healthcheck.js /app/
+COPY --from=builder --chown=node:node /app/healthcheck.js /app/
 
 USER node
 
