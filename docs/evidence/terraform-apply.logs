@@ -1,0 +1,256 @@
+data.aws_ami.amazon_linux: Reading...
+data.aws_caller_identity.current: Reading...
+module.ec2.data.aws_iam_policy_document.ec2_assume_role: Reading...
+aws_iam_openid_connect_provider.github: Refreshing state... [id=arn:aws:iam::982498569241:oidc-provider/token.actions.githubusercontent.com]
+module.vpc.aws_vpc.this: Refreshing state... [id=vpc-0071a09053b0b186a]
+module.ec2.aws_eip.this: Refreshing state... [id=eipalloc-01d5a30cda5d47926]
+module.ec2.aws_ebs_volume.data: Refreshing state... [id=vol-0e16d8ccaf6853904]
+module.ec2.data.aws_iam_policy_document.ec2_assume_role: Read complete after 0s [id=2851119427]
+module.ec2.aws_iam_role.ssm: Refreshing state... [id=devops-k3s-ssm-role]
+data.aws_caller_identity.current: Read complete after 0s [id=982498569241]
+data.aws_iam_policy_document.github_trust: Reading...
+data.aws_iam_policy_document.github_trust: Read complete after 0s [id=1233689086]
+aws_iam_role.github_cd: Refreshing state... [id=devops-github-cd]
+data.aws_ami.amazon_linux: Read complete after 1s [id=ami-06285a63e70435c59]
+module.ec2.aws_iam_instance_profile.ssm: Refreshing state... [id=devops-k3s-ssm-profile]
+module.ec2.aws_iam_role_policy_attachment.ssm: Refreshing state... [id=devops-k3s-ssm-role-20261113104116740300000001]
+module.vpc.aws_internet_gateway.this: Refreshing state... [id=igw-04f1c401f51ef30f8]
+module.vpc.aws_subnet.public: Refreshing state... [id=subnet-0d73a2d1c9bb0f15e]
+module.ec2.aws_security_group.instance: Refreshing state... [id=sg-0bcec3dd12afd9020]
+module.vpc.aws_route_table.public: Refreshing state... [id=rtb-07797734f74631d38]
+module.ec2.aws_instance.this: Refreshing state... [id=i-02b6b185e84fd638c]
+module.vpc.aws_route_table_association.public: Refreshing state... [id=rtbassoc-0f29357904db08344]
+module.ec2.aws_eip_association.this: Refreshing state... [id=eipassoc-03263482a40e1bb25]
+module.ec2.aws_volume_attachment.data: Refreshing state... [id=vai-2975006629]
+aws_iam_role_policy.github_cd: Refreshing state... [id=devops-github-cd:deploy-via-ssm]
+
+Terraform used the selected providers to generate the following execution plan. Resource actions are indicated with the following symbols:
+  ~ update in-place
+-/+ destroy and then create replacement
+ <= read (data resources)
+
+Terraform will perform the following actions:
+
+  # data.aws_iam_policy_document.github_cd will be read during apply
+  # (config refers to values not yet known)
+ <= data "aws_iam_policy_document" "github_cd" {
+      + id            = (known after apply)
+      + json          = (known after apply)
+      + minified_json = (known after apply)
+
+      + statement {
+          + actions   = [
+              + "ssm:SendCommand",
+            ]
+          + resources = [
+              + "arn:aws:ssm:sa-east-1::document/AWS-RunShellScript",
+              + (known after apply),
+            ]
+        }
+      + statement {
+          + actions   = [
+              + "ssm:GetCommandInvocation",
+            ]
+          + resources = [
+              + "*",
+            ]
+        }
+    }
+
+  # aws_iam_role_policy.github_cd will be updated in-place
+  ~ resource "aws_iam_role_policy" "github_cd" {
+        id     = "devops-github-cd:deploy-via-ssm"
+        name   = "deploy-via-ssm"
+      ~ policy = jsonencode(
+            {
+              - Statement = [
+                  - {
+                      - Action   = "ssm:SendCommand"
+                      - Effect   = "Allow"
+                      - Resource = [
+                          - "arn:aws:ssm:sa-east-1::document/AWS-RunShellScript",
+                          - "arn:aws:ec2:sa-east-1:982498569241:instance/i-02b6b185e84fd638c",
+                        ]
+                    },
+                  - {
+                      - Action   = "ssm:GetCommandInvocation"
+                      - Effect   = "Allow"
+                      - Resource = "*"
+                    },
+                ]
+              - Version   = "2012-10-17"
+            }
+        ) -> (known after apply)
+        # (1 unchanged attribute hidden)
+    }
+
+  # module.ec2.aws_eip_association.this must be replaced
+-/+ resource "aws_eip_association" "this" {
+      ~ id                   = "eipassoc-03263482a40e1bb25" -> (known after apply)
+      ~ instance_id          = "i-02b6b185e84fd638c" # forces replacement -> (known after apply) # forces replacement
+      ~ network_interface_id = "eni-0ef260dc7213cf6ff" -> (known after apply)
+      ~ private_ip_address   = "10.0.1.170" -> (known after apply)
+      ~ public_ip            = "18.229.36.187" -> (known after apply)
+        # (1 unchanged attribute hidden)
+    }
+
+  # module.ec2.aws_instance.this must be replaced
+-/+ resource "aws_instance" "this" {
+      ~ arn                                  = "arn:aws:ec2:sa-east-1:982498569241:instance/i-02b6b185e84fd638c" -> (known after apply)
+      ~ associate_public_ip_address          = true -> false # forces replacement
+      ~ availability_zone                    = "sa-east-1a" -> (known after apply)
+      ~ cpu_core_count                       = 1 -> (known after apply)
+      ~ cpu_threads_per_core                 = 2 -> (known after apply)
+      ~ disable_api_stop                     = false -> (known after apply)
+      ~ disable_api_termination              = false -> (known after apply)
+      ~ ebs_optimized                        = false -> (known after apply)
+      + enable_primary_ipv6                  = (known after apply)
+      - hibernation                          = false -> null
+      + host_id                              = (known after apply)
+      + host_resource_group_arn              = (known after apply)
+      ~ id                                   = "i-02b6b185e84fd638c" -> (known after apply)
+      ~ instance_initiated_shutdown_behavior = "stop" -> (known after apply)
+      + instance_lifecycle                   = (known after apply)
+      ~ instance_state                       = "running" -> (known after apply)
+      ~ ipv6_address_count                   = 0 -> (known after apply)
+      ~ ipv6_addresses                       = [] -> (known after apply)
+      + key_name                             = (known after apply)
+      ~ monitoring                           = false -> (known after apply)
+      + outpost_arn                          = (known after apply)
+      + password_data                        = (known after apply)
+      + placement_group                      = (known after apply)
+      ~ placement_partition_number           = 0 -> (known after apply)
+      ~ primary_network_interface_id         = "eni-0ef260dc7213cf6ff" -> (known after apply)
+      ~ private_dns                          = "ip-10-0-1-170.sa-east-1.compute.internal" -> (known after apply)
+      ~ private_ip                           = "10.0.1.170" -> (known after apply)
+      ~ public_dns                           = "ec2-18-229-36-187.sa-east-1.compute.amazonaws.com" -> (known after apply)
+      ~ public_ip                            = "18.229.36.187" -> (known after apply)
+      ~ secondary_private_ips                = [] -> (known after apply)
+      ~ security_groups                      = [] -> (known after apply)
+      + spot_instance_request_id             = (known after apply)
+        tags                                 = {
+            "Name" = "devsu"
+        }
+      ~ tenancy                              = "default" -> (known after apply)
+      + user_data_base64                     = (known after apply)
+        # (10 unchanged attributes hidden)
+
+      - capacity_reservation_specification {
+          - capacity_reservation_preference = "open" -> null
+        }
+
+      - cpu_options {
+          - core_count       = 1 -> null
+          - threads_per_core = 2 -> null
+        }
+
+      - credit_specification {
+          - cpu_credits = "unlimited" -> null
+        }
+
+      - ebs_block_device {
+          - delete_on_termination = false -> null
+          - device_name           = "/dev/sdf" -> null
+          - encrypted             = true -> null
+          - iops                  = 3000 -> null
+          - kms_key_id            = "arn:aws:kms:sa-east-1:982498569241:key/f62db682-24f2-4127-8ab1-826720885a60" -> null
+          - tags                  = {
+              - "Name" = "devsu-data"
+            } -> null
+          - tags_all              = {
+              - "Name" = "devsu-data"
+            } -> null
+          - throughput            = 125 -> null
+          - volume_id             = "vol-0e16d8ccaf6853904" -> null
+          - volume_size           = 20 -> null
+          - volume_type           = "gp3" -> null
+        }
+
+      - enclave_options {
+          - enabled = false -> null
+        }
+
+      - maintenance_options {
+          - auto_recovery = "default" -> null
+        }
+
+      - metadata_options {
+          - http_endpoint               = "enabled" -> null
+          - http_protocol_ipv6          = "disabled" -> null
+          - http_put_response_hop_limit = 2 -> null
+          - http_tokens                 = "required" -> null
+          - instance_metadata_tags      = "disabled" -> null
+        }
+
+      - private_dns_name_options {
+          - enable_resource_name_dns_a_record    = false -> null
+          - enable_resource_name_dns_aaaa_record = false -> null
+          - hostname_type                        = "ip-name" -> null
+        }
+
+      ~ root_block_device {
+          ~ device_name           = "/dev/xvda" -> (known after apply)
+          ~ iops                  = 3000 -> (known after apply)
+          ~ kms_key_id            = "arn:aws:kms:sa-east-1:982498569241:key/f62db682-24f2-4127-8ab1-826720885a60" -> (known after apply)
+          - tags                  = {} -> null
+          ~ tags_all              = {} -> (known after apply)
+          ~ throughput            = 125 -> (known after apply)
+          ~ volume_id             = "vol-0a3d440ad4a9ee099" -> (known after apply)
+            # (4 unchanged attributes hidden)
+        }
+    }
+
+  # module.ec2.aws_volume_attachment.data must be replaced
+-/+ resource "aws_volume_attachment" "data" {
+      ~ id          = "vai-2975006629" -> (known after apply)
+      ~ instance_id = "i-02b6b185e84fd638c" # forces replacement -> (known after apply) # forces replacement
+        # (2 unchanged attributes hidden)
+    }
+
+Plan: 3 to add, 1 to change, 3 to destroy.
+
+Changes to Outputs:
+  ~ instance_id        = "i-02b6b185e84fd638c" -> (known after apply)
+
+Do you want to perform these actions?
+  Terraform will perform the actions described above.
+  Only 'yes' will be accepted to approve.
+
+  Enter a value: yes
+
+module.ec2.aws_eip_association.this: Destroying... [id=eipassoc-03263482a40e1bb25]
+module.ec2.aws_volume_attachment.data: Destroying... [id=vai-2975006629]
+module.ec2.aws_eip_association.this: Destruction complete after 1s
+module.ec2.aws_volume_attachment.data: Still destroying... [id=vai-2975006629, 10s elapsed]
+module.ec2.aws_volume_attachment.data: Destruction complete after 10s
+module.ec2.aws_instance.this: Destroying... [id=i-02b6b185e84fd638c]
+module.ec2.aws_instance.this: Still destroying... [id=i-02b6b185e84fd638c, 10s elapsed]
+module.ec2.aws_instance.this: Still destroying... [id=i-02b6b185e84fd638c, 20s elapsed]
+module.ec2.aws_instance.this: Still destroying... [id=i-02b6b185e84fd638c, 30s elapsed]
+module.ec2.aws_instance.this: Destruction complete after 31s
+module.ec2.aws_instance.this: Creating...
+module.ec2.aws_instance.this: Still creating... [10s elapsed]
+module.ec2.aws_instance.this: Creation complete after 14s [id=i-05f9799f1627fd0eb]
+module.ec2.aws_volume_attachment.data: Creating...
+module.ec2.aws_eip_association.this: Creating...
+data.aws_iam_policy_document.github_cd: Reading...
+data.aws_iam_policy_document.github_cd: Read complete after 0s [id=1881102962]
+aws_iam_role_policy.github_cd: Modifying... [id=devops-github-cd:deploy-via-ssm]
+aws_iam_role_policy.github_cd: Modifications complete after 1s [id=devops-github-cd:deploy-via-ssm]
+module.ec2.aws_eip_association.this: Creation complete after 2s [id=eipassoc-034c4fc83bcccf0f7]
+module.ec2.aws_volume_attachment.data: Still creating... [10s elapsed]
+module.ec2.aws_volume_attachment.data: Still creating... [20s elapsed]
+module.ec2.aws_volume_attachment.data: Creation complete after 21s [id=vai-1625273118]
+
+Apply complete! Resources: 3 added, 1 changed, 3 destroyed.
+
+Outputs:
+
+data_volume_id = "vol-0e16d8ccaf6853904"
+github_cd_role_arn = "arn:aws:iam::982498569241:role/devops-github-cd"
+instance_id = "i-05f9799f1627fd0eb"
+instance_public_ip = "18.229.36.187"
+public_subnet_id = "subnet-0d73a2d1c9bb0f15e"
+security_group_id = "sg-0bcec3dd12afd9020"
+vpc_id = "vpc-0071a09053b0b186a"
+                                      
