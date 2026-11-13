@@ -1,0 +1,145 @@
+
+name: CD
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Existing image tag in GHCR"
+        required: true
+        type: string
+
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: aws-k3s-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: >-
+      (github.event_name == 'workflow_dispatch' &&
+       github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_branch == 'main' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_CD_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Verify AWS identity
+        run: aws sts get-caller-identity
+
+      - name: Deploy via SSM
+        shell: bash
+        env:
+          INSTANCE_ID: ${{ vars.AWS_INSTANCE_ID }}
+          REPO: ${{ github.repository }}
+          COMMIT_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+          IMAGE_TAG: ${{ github.event_name == 'workflow_run' && format('sha-{0}', github.event.workflow_run.head_sha) || inputs.image_tag }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import re
+          import shlex
+
+          repo = os.environ["REPO"]
+          sha = os.environ["COMMIT_SHA"]
+          tag = os.environ["IMAGE_TAG"]
+
+          assert re.fullmatch(r"[0-9a-f]{40}", sha)
+          assert re.fullmatch(r"[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}", tag)
+
+          image = f"ghcr.io/{repo.lower()}"
+          archive = f"https://github.com/{repo}/archive/{sha}.tar.gz"
+
+          script = f"""
+          set -eu
+
+          WORKDIR=$(mktemp -d)
+          trap 'rm -rf "$WORKDIR"' EXIT
+
+          mkdir -p "$WORKDIR/source"
+
+          curl -fsSL --retry 3 {shlex.quote(archive)} \\
+            -o "$WORKDIR/source.tar.gz"
+
+          tar -xzf "$WORKDIR/source.tar.gz" \\
+            -C "$WORKDIR/source" --strip-components=1
+
+          export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+
+          helm lint "$WORKDIR/source/helm"
+
+          helm upgrade --install api "$WORKDIR/source/helm" \\
+            --namespace devops \\
+            --create-namespace \\
+            --set-string image.repository={shlex.quote(image)} \\
+            --set-string image.tag={shlex.quote(tag)} \\
+            --atomic \\
+            --timeout 300s
+
+          k3s kubectl get deployments,pods,services,ingress,hpa \\
+            -n devops
+          """
+
+          with open("ssm-params.json", "w") as f:
+              json.dump({
+                  "commands": [script],
+                  "executionTimeout": ["600"]
+              }, f)
+          PY
+
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids "$INSTANCE_ID" \
+            --document-name AWS-RunShellScript \
+            --parameters file://ssm-params.json \
+            --query 'Command.CommandId' \
+            --output text)
+
+          echo "SSM Command: $COMMAND_ID"
+
+          for attempt in {1..60}; do
+            STATUS=$(aws ssm get-command-invocation \
+              --command-id "$COMMAND_ID" \
+              --instance-id "$INSTANCE_ID" \
+              --query 'Status' --output text 2>/dev/null || echo Pending)
+
+            case "$STATUS" in
+              Success)
+                aws ssm get-command-invocation \
+                  --command-id "$COMMAND_ID" \
+                  --instance-id "$INSTANCE_ID" \
+                  --query 'StandardOutputContent' \
+                  --output text
+                exit 0
+                ;;
+              Failed|TimedOut|Cancelled|Cancelling)
+                aws ssm get-command-invocation \
+                  --command-id "$COMMAND_ID" \
+                  --instance-id "$INSTANCE_ID" \
+                  --output json
+                exit 1
+                ;;
+            esac
+
+            sleep 10
+          done
+
+          echo "Deployment verification timed out"
+          exit 1
