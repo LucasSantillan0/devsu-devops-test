@@ -52,3 +52,8 @@ variable "data_volume_size" {
   default     = 20
 }
 
+variable "github_oidc_subject" {
+  type        = string
+  description = "GitHub OIDC subject authorized to deploy"
+  default     = "repo:LucasSantillan0@90868414/devsu-devops-test@1454466817:ref:refs/heads/main"
+}
