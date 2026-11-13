@@ -63,7 +63,7 @@ spec:
           {{- end }}
           envFrom:
             - configMapRef:
-              name: {{ include "test-api.fullname" . }}-config
+                name: {{ include "test-api.fullname" . }}-config
 
       {{- with .Values.volumes }}
       volumes:
