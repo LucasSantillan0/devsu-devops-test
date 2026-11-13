@@ -3,9 +3,10 @@ import { Sequelize } from 'sequelize'
 
 dotenv.config()
 
-const sequelize = new Sequelize('test-db', process.env.DATABASE_USER, process.env.DATABASE_PASSWORD, {
+const sequelize = new Sequelize({
   dialect: 'sqlite',
-  host: process.env.DATABASE_NAME
+  storage: process.env.DATABASE_PATH || ':memory:',
+  logging: false
 })
 
 export default sequelize

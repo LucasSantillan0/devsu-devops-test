@@ -67,9 +67,16 @@ autoscaling:
 config:
   NODE_ENV: "production"
   PORT: "8000"
+  DATABASE_PATH: "/data/database.sqlite"
+
+persistence:
+  size: 1Gi
 
 volumes: []
-volumeMounts: []
+volumeMounts:
+  - name: sqlite-data
+    mountPath: /data
+
 
 nodeSelector: {}
 tolerations: []
