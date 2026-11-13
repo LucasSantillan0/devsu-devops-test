@@ -1,0 +1,124 @@
+
+#cloud-config
+package_update: true
+
+packages:
+  - e2fsprogs
+
+write_files:
+  - path: /usr/local/sbin/bootstrap-k3s.sh
+    owner: root:root
+    permissions: '0700'
+    content: |
+      #!/usr/bin/env bash
+      set -euo pipefail
+
+      # 1. Identify the EBS volume
+      EBS_ID="${ebs_volume_id}"
+      SERIAL="$(echo "$EBS_ID" | tr -d '-')"
+      DEVICE=""
+
+      # Wait for Terraform to attach the EBS volume
+      for i in $(seq 1 120); do
+        DEVICE="$(lsblk -dn -o NAME,SERIAL | awk -v id="$SERIAL" '$2 == id {print "/dev/" $1}')"
+
+        if [ -n "$DEVICE" ]; then
+          break
+        fi
+
+        sleep 2
+      done
+
+      if [ -z "$DEVICE" ]; then
+        echo "EBS volume not found: $EBS_ID" >&2
+        exit 1
+      fi
+
+      echo "EBS detected: $DEVICE"
+
+      # 2. Format only if the disk is empty
+      FS_TYPE="$(blkid -s TYPE -o value "$DEVICE" || true)"
+
+      if [ -z "$FS_TYPE" ]; then
+        if [ -n "$(wipefs -n --noheadings -o TYPE "$DEVICE")" ]; then
+          echo "Unknown disk signatures; refusing to format" >&2
+          exit 1
+        fi
+
+        mkfs.ext4 "$DEVICE"
+        FS_TYPE="ext4"
+      fi
+
+      if [ "$FS_TYPE" != "ext4" ] && [ "$FS_TYPE" != "xfs" ]; then
+        echo "Unsupported filesystem: $FS_TYPE" >&2
+        exit 1
+      fi
+
+      # 3. Configure persistent mounting
+      mkdir -p /data
+
+      UUID="$(blkid -s UUID -o value "$DEVICE")"
+
+      if ! grep -Eq '^[^#]+[[:space:]]+/data[[:space:]]+' /etc/fstab; then
+        echo "UUID=$UUID /data $FS_TYPE defaults,nofail 0 2" >> /etc/fstab
+      fi
+
+      if ! mountpoint -q /data; then
+        mount /data
+      fi
+
+      if [ "$(findmnt -n -o UUID /data)" != "$UUID" ]; then
+        echo "Wrong volume mounted at /data" >&2
+        exit 1
+      fi
+
+      # 4. Configure k3s storage
+      mkdir -p /data/k3s-storage
+      mkdir -p /etc/rancher/k3s
+
+      cat > /etc/rancher/k3s/config.yaml <<'EOF'
+      write-kubeconfig-mode: "0600"
+      default-local-storage-path: /data/k3s-storage
+      EOF
+
+      # Ensure storage is mounted before k3s starts
+      mkdir -p /etc/systemd/system/k3s.service.d
+
+      cat > /etc/systemd/system/k3s.service.d/10-storage.conf <<'EOF'
+      [Unit]
+      RequiresMountsFor=/data
+      AssertPathIsMountPoint=/data
+      EOF
+
+      # 5. Install k3s
+      if ! command -v k3s >/dev/null 2>&1; then
+        curl -fsSL https://get.k3s.io | \
+          INSTALL_K3S_VERSION="v1.35.5+k3s1" sh -
+      fi
+
+      systemctl daemon-reload
+      systemctl enable --now k3s
+
+      # 6. Install Helm CLI
+      if ! command -v helm >/dev/null 2>&1; then
+        curl -fsSL \
+          https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 \
+          -o /run/get-helm-3.sh
+
+        bash /run/get-helm-3.sh --version v3.19.5
+      fi
+
+      # 7. Verify Kubernetes
+      for i in $(seq 1 60); do
+        if k3s kubectl get nodes --no-headers 2>/dev/null | grep -Eq '[[:space:]]Ready[[:space:]]'; then
+          echo "k3s bootstrap completed successfully"
+          exit 0
+        fi
+        sleep 5
+      done
+
+      echo "k3s did not become Ready" >&2
+      exit 1
+
+runcmd:
+  - [bash, /usr/local/sbin/bootstrap-k3s.sh]
